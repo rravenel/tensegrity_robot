@@ -10,8 +10,10 @@ PI = 3.141593
 TIME_STEP_S = 0.01
 LENGTH_M = 1
 RADIUS_M = 0.025
-#MASS_KG = 0.1
-MASS_KG = 0
+MASS_KG = 0.1
+#MASS_KG = 0 # so it doesn't fall
+
+BASE_ID = -1
 
 UIDS = []
 
@@ -21,8 +23,8 @@ def configPyBullet():
     p.setAdditionalSearchPath(pybullet_data.getDataPath())  # used by loadURDF
     p.resetSimulation()
     p.setGravity(0,0,-9.8) # m/s^2
-    #p.setTimeStep(TIME_STEP_S) # sec
-    p.setRealTimeSimulation(1)
+    p.setTimeStep(TIME_STEP_S) # sec
+    p.setRealTimeSimulation(0)
     #planeId = p.loadURDF("plane.urdf")
     p.createCollisionShape(p.GEOM_PLANE)
     p.createMultiBody(0, 0)
@@ -52,8 +54,7 @@ def createStrut(basePosition, baseOrientation=[0, 0, 0]):
     
     colCylinderId = p.createCollisionShape(p.GEOM_CYLINDER, radius=radius, height=length)
 
-    cylinderUid = p.createMultiBody(mass, colCylinderId, visualShapeId, basePosition,
-                                  p.getQuaternionFromEuler(baseOrientation))
+    cylinderUid = p.createMultiBody(mass, colCylinderId, visualShapeId, basePosition, baseOrientation)
     
     # TODO for ground contact?
     #p.changeDynamics(cylinderUid,
@@ -83,6 +84,12 @@ def strutPose(uid):
     pointB = cm.translate(pointB, position)
 
     return pointA, pointB
+
+# push on the end of a strut; end 0 is top end
+def push(uid, end, force):
+    end0, end1 = strutPose(uid)
+    endToUse = end0 if end == 0 else end1
+    p.applyExternalForce(uid, BASE_ID, force, endToUse, p.WORLD_FRAME)
     
 def report():
     for uid in UIDS:
@@ -98,25 +105,32 @@ def report():
 def main():
     physicsClient = configPyBullet()
     
-    basePosition = [0, 0, 2]
-    baseOrientation = [PI/2, 0, -PI/8]
-    strutUid_1 = createStrut(basePosition, baseOrientation)
-    #strutUid_2 = createStrut([1, 0, 2], [2, 0, 0, 1])
+    basePosition = [0, 0, LENGTH_M/2]
+    baseOrientation = [0, 0, 2] # Euler angles [x, y, z]
+    strutUid_1 = createStrut(basePosition, p.getQuaternionFromEuler(baseOrientation))
+    #strutUid_2 = createStrut([0.5, 0, LENGTH_M/2], p.getQuaternionFromEuler(baseOrientation))
+    UIDS.append(strutUid_1)
     
-    offset_m = 0.5
+def foo():    
     end1, end2 = strutPose(strutUid_1)
-
     createSphere(end1)
     createSphere(end2)
 
-def keepAlive():
+    end3, end4 = strutPose(strutUid_2)
+    createSphere(end3)
+    createSphere(end4)
+
+def run():
+    force = (0, 1, 2)
+    
     while (1):
         #report()
-        
+        push(UIDS[0], 0, force)
+        p.stepSimulation()
         keys = p.getKeyboardEvents()
         time.sleep(0.01)
       
 if __name__ == '__main__':
     main()
-    keepAlive()
+    run()
     
