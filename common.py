@@ -22,3 +22,6 @@ def rotate(position, orientation):
 
 def translate(p1, p2):
     return (p1[0] + p2[0], p1[1] + p2[1], p1[2] + p2[2])
+
+def delta(p1, p2):
+    return (p2[0] - p1[0], p2[1] - p1[1], p2[2] - p1[2])

@@ -106,10 +106,14 @@ def main():
     physicsClient = configPyBullet()
     
     basePosition = [0, 0, LENGTH_M/2]
-    baseOrientation = [0, 0, 2] # Euler angles [x, y, z]
+    baseOrientation = [0, 0, 0] # Euler angles [x, y, z]
     strutUid_1 = createStrut(basePosition, p.getQuaternionFromEuler(baseOrientation))
-    #strutUid_2 = createStrut([0.5, 0, LENGTH_M/2], p.getQuaternionFromEuler(baseOrientation))
+    strutUid_2 = createStrut([0.5, 0, LENGTH_M/2], p.getQuaternionFromEuler(baseOrientation))
     UIDS.append(strutUid_1)
+    UIDS.append(strutUid_2)
+    
+    p1, p2 = strutPose(strutUid_1)
+    print(cm.delta(p1, p2))
     
 def foo():    
     end1, end2 = strutPose(strutUid_1)
@@ -125,7 +129,7 @@ def run():
     
     while (1):
         #report()
-        push(UIDS[0], 0, force)
+        #push(UIDS[0], 0, force)
         p.stepSimulation()
         keys = p.getKeyboardEvents()
         time.sleep(0.01)
