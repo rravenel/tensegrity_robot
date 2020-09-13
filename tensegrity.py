@@ -32,14 +32,19 @@ def main():
     physicsClient = configPyBullet()
     
     global UIDS
-    UIDS = m.build()
+    UIDS, springs = m.build()
+    
+    first = True
+    for uid in UIDS:
+        if first:
+            end0, end1 = cm.strutPose(uid, m.LENGTH_M)
+            #cm.createSphere(end0)
+        first = not first
 
 def run():
-    force = (0, 1, 2)
-    
     while (1):
-        #report()
-        #push(UIDS[0], 0, force)
+        springs = m.updateSpringPositions(UIDS)
+        m.applySpringForces(springs)
         p.stepSimulation()
         keys = p.getKeyboardEvents()
         time.sleep(0.01)

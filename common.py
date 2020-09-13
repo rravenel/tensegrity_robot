@@ -29,14 +29,20 @@ def translate(p1, p2):
     return (p1[0] + p2[0], p1[1] + p2[1], p1[2] + p2[2])
 
 def delta(p1, p2):
-    return (p2[0] - p1[0], p2[1] - p1[1], p2[2] - p1[2])
+    return ((p2[0] - p1[0])**2 + (p2[1] - p1[1])**2 + (p2[2] - p1[2])**2)**0.5
 
+# unit vector
+def direction(p1, p2):
+    d = delta(p1, p2)
+    return ((p2[0] - p1[0])/d, (p2[1] - p1[1])/d, (p2[2] - p1[2])/d)
+
+# constand in N/m, displacement in m
+def springForce(springConstant, displacement):
+    return springConstant * displacement
 
 # push on the end of a strut; end 0 is top end
 def push(uid, end, force):
-    end0, end1 = strutPose(uid)
-    endToUse = end0 if end == 0 else end1
-    p.applyExternalForce(uid, BASE_ID, force, endToUse, p.WORLD_FRAME)
+    p.applyExternalForce(uid, BASE_ID, force, end, p.WORLD_FRAME)
 
 # useful for development
 def createSphere(basePosition, baseOrientation=[0, 0, 0]):
@@ -75,11 +81,11 @@ def strutPose(uid, length): # not sure how to get link geometry
     radius = length / 2
     
     # rotate by orientation
-    pointA = cm.rotate((0, 0, radius), orientation)
-    pointB = cm.rotate((0, 0, -radius), orientation)
+    pointA = rotate((0, 0, radius), orientation)
+    pointB = rotate((0, 0, -radius), orientation)
 
     # translate by position
-    pointA = cm.translate(pointA, position)
-    pointB = cm.translate(pointB, position)
+    pointA = translate(pointA, position)
+    pointB = translate(pointB, position)
 
     return pointA, pointB
