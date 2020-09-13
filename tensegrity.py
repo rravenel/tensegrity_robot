@@ -11,8 +11,6 @@ import util as ut
 BOUNCE = "bounce"
 TIME_STEP_S = 0.01
 
-UIDS = []
-
 
 def configPyBullet():
     physicsClient = p.connect(p.GUI)
@@ -29,21 +27,24 @@ def configPyBullet():
 
 def reset():
     p.resetSimulation()
+    m.reset()
+
+def step():
+    m.reset()
+    p.stepSimulation()
     
 def main():
     physicsClient = configPyBullet()
-    
-    global UIDS
-    UIDS, springs = m.build()
+    m.build()
 
 def run():
     while (1):
         start = time.time()
-        m.impede(UIDS)
-        springs = m.updateSpringPositions(UIDS)
-        m.applySpringForces(springs)
+        m.impede()
+        m.updateSprings()
+        m.applySpringForces()
         
-        p.stepSimulation()
+        step()
         keys = p.getKeyboardEvents()
         
         stop = time.time()
