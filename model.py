@@ -21,6 +21,9 @@ POSITION = (0, 0, 0.5) # global coordinates for center of tensegrity
 #SPRING_TENSION_N = 5
 SPRING_TENSION_N = 10
 SPRING_LENGTH_M = 2 * OFFSET - (SPRING_TENSION_N/SPRING_K)
+SPRING_TRAVEL = 0.5
+SPRING_LENGTH_MAX_M = 1 + SPRING_TRAVEL * SPRING_LENGTH_M
+SPRING_LENGTH_MIM_M = 1 - SPRING_TRAVEL * SPRING_LENGTH_M
 DAMPING = 0.005 # friction/dampening coefficient
 IMPEDANCE = 1 - DAMPING
 
@@ -73,12 +76,6 @@ def getStrutEnd(uid, end):
     strut = STRUTS[uid]
     return strut[end]
 
-def getStrutEnd2(uid, end):
-    end0, end1 = ut.strutPose(uid, LENGTH_M)
-    if 0 == end:
-        return end0
-    return end1
-    
 def updateSprings(deltas=None):
     global SPRINGS
     if None == deltas:
@@ -87,7 +84,11 @@ def updateSprings(deltas=None):
         lengths = []
         for i in range(length(SPRINGS)):
             spring = SPRINGS[i]
-            lengths.append(spring[2] + deltas[i])
+            length = spring[2] + deltas[i]
+            if length > SPRING_LENGTH_MAX_M:
+                length = SPRING_LENGTH_MAX_M
+            if length < SPRING_LENGTH_MIN_M:
+                length = SPRING_LENGTH_MIN_M
         
     springs = [] # list of ((uidA, endA), (uidB, endB))
     springs.append(((UIDS[0], getStrutEnd(UIDS[0], 0)),(UIDS[4], getStrutEnd(UIDS[4], 0)), lengths[0]))
