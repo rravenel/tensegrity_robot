@@ -33,21 +33,21 @@ def main():
     
     global UIDS
     UIDS, springs = m.build()
-    
-    first = True
-    for uid in UIDS:
-        if first:
-            end0, end1 = cm.strutPose(uid, m.LENGTH_M)
-            #cm.createSphere(end0)
-        first = not first
 
 def run():
     while (1):
+        start = time.time()
+        m.impede(UIDS)
         springs = m.updateSpringPositions(UIDS)
         m.applySpringForces(springs)
+        
         p.stepSimulation()
         keys = p.getKeyboardEvents()
-        time.sleep(0.01)
+        
+        stop = time.time()
+        delta = stop - start
+        if delta < TIME_STEP_S:
+            time.sleep(TIME_STEP_S - delta)
       
 if __name__ == '__main__':
     main()

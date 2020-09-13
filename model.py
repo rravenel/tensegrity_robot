@@ -16,11 +16,12 @@ RADIUS_M = 0.025
 MASS_KG = 0.1
 #MASS_KG = 0 # so it doesn't fall
 OFFSET = LENGTH_M * (1/cm.GOLDEN_NUMBER) / 2
-POSITION = (0, 0, 2) # global coordinates for center of tensegrity
+POSITION = (0, 0, 10) # global coordinates for center of tensegrity
 
 SPRING_TENSION_N = 5
 SPRING_LENGTH_M = 2 * OFFSET - (SPRING_TENSION_N/SPRING_K)
-
+DAMPING = 0.005 # friction/dampening coefficient
+IMPEDANCE = 1 - DAMPING
 
 # create position/orientation for pairs of strust for given axis
 def placeStruts(axis):
@@ -44,7 +45,19 @@ def getCenter(uids):
         sum[0] += position[0]
         sum[1] += position[1]
         sum[2] += position[2]
-    return (sum[0] / 12, sum[1] / 12, sum[2] / 12)
+    return (sum[0] / 6, sum[1] / 6, sum[2] / 6)
+
+def getAverageVelocity(uids):
+    sum = [[0,0,0],[0,0,0]]
+    for uid in uids:
+        linVel, angVel = p.getBaseVelocity(uid)
+        sum[0][0] += linVel[0]
+        sum[0][1] += linVel[1]
+        sum[0][2] += linVel[2]
+        sum[1][0] += angVel[0]
+        sum[1][1] += angVel[1]
+        sum[1][2] += angVel[2]
+    return (sum[0][0]/6, sum[0][1]/6, sum[0][2]/6), (sum[1][0]/6, sum[1][1]/6, sum[1][2]/6)
 
 def getStrutEnd(uid, end):
     end0, end1 = cm.strutPose(uid, LENGTH_M)
@@ -89,6 +102,16 @@ def applySpringForces(springs):
         force = (direction[0] * force, direction[1] * force, direction[2] * force)
         cm.push(spring[0][0], spring[0][1], force)
         cm.push(spring[1][0], spring[1][1], [i * -1 for i in force])
+
+def impede(uids):
+    for uid in uids:
+        linVel, angVel = p.getBaseVelocity(uid)
+        
+        linVel = [i * IMPEDANCE for i in linVel]
+        angVel = [i * IMPEDANCE for i in angVel]
+
+        p.resetBaseVelocity(uid, linVel, angVel)
+        
 
 # create an icosahedral tensegrity
 def build():

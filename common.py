@@ -61,13 +61,6 @@ def createStrut(radius, length, mass, basePosition, baseOrientation=[0, 0, 0, 1]
     colCylinderId = p.createCollisionShape(p.GEOM_CYLINDER, radius=radius, height=length)
 
     cylinderUid = p.createMultiBody(mass, colCylinderId, visualShapeId, basePosition, baseOrientation)
-    
-    # TODO for ground contact?
-    #p.changeDynamics(cylinderUid,
-    #                 -1,
-    #                 spinningFriction=0.001,
-    #                 rollingFriction=0.001,
-    #                 linearDamping=0.0)
                      
     return cylinderUid
 
