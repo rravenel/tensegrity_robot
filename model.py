@@ -1,6 +1,6 @@
 import pybullet as p
 
-import common as cm
+import util as ut
 
 
 
@@ -15,25 +15,26 @@ LENGTH_M = 1
 RADIUS_M = 0.025
 MASS_KG = 0.1
 #MASS_KG = 0 # so it doesn't fall
-OFFSET = LENGTH_M * (1/cm.GOLDEN_NUMBER) / 2
-POSITION = (0, 0, 10) # global coordinates for center of tensegrity
+OFFSET = LENGTH_M * (1/ut.GOLDEN_NUMBER) / 2
+POSITION = (0, 0, 0.5) # global coordinates for center of tensegrity
 
-SPRING_TENSION_N = 5
+#SPRING_TENSION_N = 5
+SPRING_TENSION_N = 10
 SPRING_LENGTH_M = 2 * OFFSET - (SPRING_TENSION_N/SPRING_K)
 DAMPING = 0.005 # friction/dampening coefficient
 IMPEDANCE = 1 - DAMPING
 
 # create position/orientation for pairs of strust for given axis
 def placeStruts(axis):
-    orientation = p.getQuaternionFromEuler([i * cm.PI/2 for i in axis])
+    orientation = p.getQuaternionFromEuler([i * ut.PI/2 for i in axis])
     
     if axis == X:
         axis = Z
     elif axis == Z:
         axis = X    
 
-    center1 = cm.translate([i * OFFSET for i in axis], POSITION)
-    center2 = cm.translate([-i * OFFSET for i in axis], POSITION)
+    center1 = ut.translate([i * OFFSET for i in axis], POSITION)
+    center2 = ut.translate([-i * OFFSET for i in axis], POSITION)
 
     return (center1, orientation), (center2, orientation)
 
@@ -60,7 +61,7 @@ def getAverageVelocity(uids):
     return (sum[0][0]/6, sum[0][1]/6, sum[0][2]/6), (sum[1][0]/6, sum[1][1]/6, sum[1][2]/6)
 
 def getStrutEnd(uid, end):
-    end0, end1 = cm.strutPose(uid, LENGTH_M)
+    end0, end1 = ut.strutPose(uid, LENGTH_M)
     if 0 == end:
         return end0
     return end1
@@ -96,12 +97,12 @@ def updateSpringPositions(uids):
 
 def applySpringForces(springs):
     for spring in springs:
-        distance = cm.delta(spring[0][1], spring[1][1])
-        direction = cm.direction(spring[0][1], spring[1][1])
-        force = cm.springForce(SPRING_K, distance - SPRING_LENGTH_M)
+        distance = ut.delta(spring[0][1], spring[1][1])
+        direction = ut.direction(spring[0][1], spring[1][1])
+        force = ut.springForce(SPRING_K, distance - SPRING_LENGTH_M)
         force = (direction[0] * force, direction[1] * force, direction[2] * force)
-        cm.push(spring[0][0], spring[0][1], force)
-        cm.push(spring[1][0], spring[1][1], [i * -1 for i in force])
+        ut.push(spring[0][0], spring[0][1], force)
+        ut.push(spring[1][0], spring[1][1], [i * -1 for i in force])
 
 def impede(uids):
     for uid in uids:
@@ -117,13 +118,13 @@ def impede(uids):
 def build():
     uids = []
     for strut in placeStruts(X):
-        uids.append(cm.createStrut(RADIUS_M, LENGTH_M, MASS_KG, strut[0], strut[1]))
+        uids.append(ut.createStrut(RADIUS_M, LENGTH_M, MASS_KG, strut[0], strut[1]))
     
     for strut in placeStruts(Y):
-        uids.append(cm.createStrut(RADIUS_M, LENGTH_M, MASS_KG, strut[0], strut[1]))
+        uids.append(ut.createStrut(RADIUS_M, LENGTH_M, MASS_KG, strut[0], strut[1]))
     
     for strut in placeStruts(Z):
-        uids.append(cm.createStrut(RADIUS_M, LENGTH_M, MASS_KG, strut[0], strut[1]))
+        uids.append(ut.createStrut(RADIUS_M, LENGTH_M, MASS_KG, strut[0], strut[1]))
     
     springs = updateSpringPositions(uids)
     

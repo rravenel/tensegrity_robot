@@ -1,12 +1,14 @@
 import math
+import sys
 import time
 
 import pybullet as p
 import pybullet_data
 
-import common as cm
 import model as m
+import util as ut
 
+BOUNCE = "bounce"
 TIME_STEP_S = 0.01
 
 UIDS = []
@@ -50,6 +52,12 @@ def run():
             time.sleep(TIME_STEP_S - delta)
       
 if __name__ == '__main__':
+    arg = None
+    if len(sys.argv) > 1:
+        arg = sys.argv[1]
+        if arg == BOUNCE:
+            m.POSITION = (0,0,5)
+        
     main()
     run()
     
