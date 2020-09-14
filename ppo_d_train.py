@@ -3,17 +3,19 @@ import time
 from stable_baselines import PPO2
 from stable_baselines.common.policies import MlpPolicy
 
-from furuta_env_t_ppo2 import FurutaEnvTorquePpo2
+from tensegrity_env_d_ppo2 import TensegrityEnvDeltaPpo2
+import tensegrity_env_base as teb
 import common as cm
 
+
 STEPS = 10000
-#STEPS = 60000
+#STEPS = 50000
 #STEPS = 100000
 #STEPS = 200000
 #DIMENSION = 16
 #DIMENSION = 32
-#DIMENSION = 64
-DIMENSION = 128
+DIMENSION = 64
+#DIMENSION = 128
 
 def callback(lcl, glb):
     return False
@@ -52,11 +54,11 @@ def train(env, file):
     )
 
     # save trained model
-    model.save(file)
+    model.save(teb.MODEL_PATH + file)
     print("Duration: %.1f" % ((time.time() - start)/60))
 
 def main():
-    train(FurutaEnvTorquePpo2(cm.TRAIN), "ppo2_policy_nn.zip")
+    train(TensegrityEnvDeltaPpo2(cm.TRAIN), "ppo2_a.zip")
 
 if __name__ == '__main__':
     main()

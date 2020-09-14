@@ -1,7 +1,7 @@
+import numpy as np
 import pybullet as p
 
 import util as ut
-
 
 
 X = [1,0,0]
@@ -18,14 +18,16 @@ MASS_KG = 0.1
 OFFSET = LENGTH_M * (1/ut.GOLDEN_NUMBER) / 2
 POSITION = (0, 0, 0.5) # global coordinates for center of tensegrity
 
-#SPRING_TENSION_N = 5
 SPRING_TENSION_N = 10
 SPRING_LENGTH_M = 2 * OFFSET - (SPRING_TENSION_N/SPRING_K)
 SPRING_TRAVEL = 0.5
-SPRING_LENGTH_MAX_M = 1 + SPRING_TRAVEL * SPRING_LENGTH_M
-SPRING_LENGTH_MIM_M = 1 - SPRING_TRAVEL * SPRING_LENGTH_M
+SPRING_LENGTH_MAX_M = (1 + SPRING_TRAVEL) * SPRING_LENGTH_M
+SPRING_LENGTH_MIN_M = (1 - SPRING_TRAVEL) * SPRING_LENGTH_M
 DAMPING = 0.005 # friction/dampening coefficient
 IMPEDANCE = 1 - DAMPING
+
+F_MAX_N = 20 # heuristic impacted by MASS_KG and SPRING_K used for normalization
+L_VEL_MAX = 10 # similar to F_MAX_N for linear velocity
 
 UIDS = []
 SPRING_LENGTHS = [SPRING_LENGTH_M] * 24
@@ -48,37 +50,54 @@ def placeStruts(axis):
     return (center1, orientation), (center2, orientation)
 
 def getCenter():
-    sum = [0,0,0]
+    total = [0,0,0]
     for uid in UIDS:
         positionAndOrientation = p.getBasePositionAndOrientation(uid)
         position = [0]
-        sum[0] += position[0]
-        sum[1] += position[1]
-        sum[2] += position[2]
-    return (sum[0] / 6, sum[1] / 6, sum[2] / 6)
+        total[0] += position[0]
+        total[1] += position[1]
+        total[2] += position[2]
+    return (total[0] / 6, total[1] / 6, total[2] / 6)
 
+# returns unit vector
 def getAveAngPos(positionAndOrientations):
-    sum = [0,0,0]
+    total = [0,0,0]
     for d in positionAndOrientations:
         orient = d[1]
         orient = ut.rotate((0,0,1), orient) # unit vector quaternion
-        sum[0] += orient[0]
-        sum[1] += orient[1]
-        sum[2] += orient[2]
-    return(sum[0]/6, sum[1]/6, sum[2]/6)
+        total[0] += orient[0]
+        total[1] += orient[1]
+        total[2] += orient[2]
+    pos = (total[0]/6, total[1]/6, total[2]/6)
+    norm = (pos[0]**2 + pos[1]**2 + pos[2]**2)**0.5
+    return (pos[0]/norm, pos[1]/norm, pos[2]/norm)
 
 def getAverageVelocity(velocities):
-    sum = [[0,0,0],[0,0,0]]
+    total = [[0,0,0],[0,0,0]]
+    amplitude = [[0,0,0],[0,0,0]]
+    
     for vel in velocities:
         linVel = vel[0]
-        angVel = vel[1]        
-        sum[0][0] += linVel[0]
-        sum[0][1] += linVel[1]
-        sum[0][2] += linVel[2]
-        sum[1][0] += angVel[0]
-        sum[1][1] += angVel[1]
-        sum[1][2] += angVel[2]
-    return (sum[0][0]/6, sum[0][1]/6, sum[0][2]/6), (sum[1][0]/6, sum[1][1]/6, sum[1][2]/6)
+        angVel = vel[1]
+        
+        total[0][0] += linVel[0]
+        total[0][1] += linVel[1]
+        total[0][2] += linVel[2]
+        total[1][0] += angVel[0]
+        total[1][1] += angVel[1]
+        total[1][2] += angVel[2]
+        
+        amplitude[0][0] += np.abs(linVel[0])
+        amplitude[0][1] += np.abs(linVel[1])
+        amplitude[0][2] += np.abs(linVel[2])
+        amplitude[1][0] += np.abs(angVel[0])
+        amplitude[1][1] += np.abs(angVel[1])
+        amplitude[1][2] += np.abs(angVel[2])
+
+    aveLinVel, aveAngVel = (total[0][0]/6, total[0][1]/6, total[0][2]/6), (total[1][0]/6, total[1][1]/6, total[1][2]/6)
+    aveLinAmp, aveAngAmp = (amplitude[0][0]/6 + amplitude[0][1]/6 + amplitude[0][2]/6)/3, (amplitude[1][0]/6 + amplitude[1][1]/6 + amplitude[1][2]/6)/3
+    
+    return aveLinVel, aveAngVel, aveLinAmp, aveAngAmp
 
 def getDistances():
     distances = []
@@ -177,14 +196,32 @@ def update():
         positionAndOrientations.append(positionAndOrientation)
         STRUTS[uid] = (ut.strutPose(positionAndOrientation, LENGTH_M))
 
-    aveLinVel, aveAngVel = getAverageVelocity(velocities)
+    aveLinVel, aveAngVel, aveLinAmp, aveAngAmp = getAverageVelocity(velocities)
     aveAngPos = getAveAngPos(positionAndOrientations)
 
     getSpans()
     getDistances()
     forces = computeForces()
+        
+    observation = []
+    for i in range(len(aveAngPos)):
+        observation.append(aveAngPos[i])
+        
+    for i in range(len(aveLinVel)):
+        #normalize linear velocity
+        observation.append(aveLinVel[i]/L_VEL_MAX)
+        
+    for i in range(len(aveAngVel)):
+        observation.append(aveAngVel[i])
+        
+    for i in range(len(forces)):
+        #normalize forces
+        observation.append(forces[i]/F_MAX_N)
+    
+    observation.append(aveLinAmp/L_VEL_MAX)
+    observation.append(aveAngAmp/L_VEL_MAX)
 
-    return aveAngPos, aveLinVel, aveAngVel, forces
+    return observation
     
 
 # create an icosahedral tensegrity

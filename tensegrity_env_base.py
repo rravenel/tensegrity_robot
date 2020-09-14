@@ -8,6 +8,8 @@ from gym import spaces
 import pybullet as p
 import pybullet_data
 
+import tensegrity as t
+import model as m
 import common as cm
 
 '''
@@ -30,6 +32,7 @@ Implementations MAY define:
 '''
 PI = cm.PI # convenience
 
+MODEL_PATH = "model/"
 
 # control by setting motor current
 class TensegrityEnvBase(gym.Env):
@@ -51,24 +54,15 @@ class TensegrityEnvBase(gym.Env):
             exit()   
         self.action_space = action_space
         
-        #obs_min = [-PI, -cm.VEL_MAX_ARM, -PI, -cm.VEL_MAX_POLE, -PI]
-        #obs_max = [PI, cm.VEL_MAX_ARM, PI, cm.VEL_MAX_POLE, PI]
-        
         obs_min, obs_max = self.setObs()
-        
         self.observation_space = spaces.Box(np.array(obs_min), np.array(obs_max))
-        
-        s2r.networkInit()
-        
-        self.num_envs = 2
-        
-        s2r.init()
-        self.setRender(render)
+                
+        #self.setRender(render)
 
     def setObs(self):
-        obs_min = [-PI, -cm.VEL_MAX_ARM, -PI, -cm.VEL_MAX_POLE, -PI]
-        obs_max = [PI, cm.VEL_MAX_ARM, PI, cm.VEL_MAX_POLE, PI]
-        
+        obs_min = [-2] * 35
+        obs_max = [2] * 35
+                
         return obs_min, obs_max
     
     # must be called immediately following __init__()
@@ -85,132 +79,27 @@ class TensegrityEnvBase(gym.Env):
         self.action = None
         self._envStepCounter = 0
 
-        self.arm_angle_target = np.random.uniform(0, 2*PI)
-        #self.arm_vel_target = np.random.uniform(-6*PI, 6*PI) # velocity rad/s, 3Hz
-        
-        self.arm_angle_real = 0
-        self.arm_vel_real = 0
-
-        self.arm_angle_jittered = 0
-        self.arm_vel_jittered = 0
-
-        self.pole_angle_real = 0
-        self.pole_vel_real = 0
-        
         p.resetSimulation()
         p.setGravity(0,0,-9.8) # m/s^2
-        p.setTimeStep(cm.STEP) # sec
-        planeId = p.loadURDF("plane.urdf")
-        
-        path = os.path.abspath(os.path.dirname(__file__))
-        #self.botId = p.loadSDF(os.path.join(path, "sdf/simple_tensegrity.sdf"))
-        self.botId = p.loadURDF(os.path.join(path, "urdf/prism.urdf"), 
-            useFixedBase=1, 
-            flags=p.URDF_USE_INERTIA_FROM_FILE)
-                
-        self.armId = 0
-        self.poleId = 0
-        
+        p.setTimeStep(t.TIME_STEP_S) # sec
+        p.setRealTimeSimulation(0)
+        p.createCollisionShape(p.GEOM_PLANE)
+        p.createMultiBody(0, 0)   
 
-        obs = self.compute_observation()
-        obs[0] = cm.rad2Norm(obs[0])
-        obs[2] = cm.rad2Norm(obs[2])
-        
-                    
+        m.build()
+        obs = m.update()
+
         return np.array(obs)
-        
-    def reset2(self, position=PI, velocity=0, arm_vel=0):
-        self.throttle = 0
-        self.action = None
-        self._envStepCounter = 0
-
-        self.arm_angle_target = np.random.uniform(0, 2*PI)
-        #self.arm_vel_target = np.random.uniform(-6*PI, 6*PI) # velocity rad/s, 3Hz
-        
-        self.arm_angle_real = 0
-        self.arm_vel_real = 0
-
-        self.arm_angle_jittered = 0
-        self.arm_vel_jittered = 0
-
-        self.pole_angle_real = 0
-        self.pole_vel_real = 0
-        
-        p.resetSimulation()
-        p.setGravity(0,0,-9.8) # m/s^2
-        p.setTimeStep(cm.STEP) # sec
-        planeId = p.loadURDF("plane.urdf")
-        
-        path = os.path.abspath(os.path.dirname(__file__))
-        self.botId = p.loadURDF(os.path.join(path, "tensegrity.urdf"), 
-            useFixedBase=1, 
-            flags=p.URDF_USE_INERTIA_FROM_FILE)
-                
-        numJoints = p.getNumJoints(self.botId)
-        joints = {}
-        for j in range(numJoints):
-            joint = p.getJointInfo(self.botId, j)
-            joints[joint[1]] = j           
-        self.armId = joints[b'pillar_to_arm']
-        self.poleId = joints[b'axle_to_rod']
-        
-        s2r.ditherInertia(self.botId, DITHER, DAMPING)
-
-        p.resetJointState(bodyUniqueId=self.botId, 
-                                jointIndex=self.poleId, 
-                                targetValue=position,
-                                targetVelocity=velocity)
-
-        p.resetJointState(bodyUniqueId=self.botId, 
-                                jointIndex=self.armId, 
-                                targetValue=0,
-                                targetVelocity=arm_vel)
-                                
-        p.setJointMotorControl2(bodyUniqueId=self.botId, 
-                                jointIndex=self.armId, 
-                                controlMode=p.VELOCITY_CONTROL, 
-                                force=0)
-
-        obs = self.compute_observation()
-        obs[0] = cm.rad2Norm(obs[0])
-        obs[2] = cm.rad2Norm(obs[2])
-        
-        s2r.networkReset(obs)
-                    
-        return np.array(obs)
-
-    def overspeed(self):
-        return abs(self.arm_vel_real) > cm.VEL_MAX_ARM or abs(self.pole_vel_real) > cm.VEL_MAX_POLE
         
     def step(self, action):
         self.action = action
         
-        last_arm_angle = self.arm_angle_real
-        last_pole_angle = self.pole_angle_real
-        
-        self.updateSimulation(action, self.botId, self.armId, overspeed=self.overspeed())
-
-        self.haze()
-
+        self.updateSimulation(action)
         p.stepSimulation()
-        
-        self.compute_observation()
-
-        latency = s2r.latency(self.arm_angle_real, last_arm_angle, self.pole_angle_real, last_pole_angle, cm.STEP)
-        arm_angle_jittered = latency[0]
-        arm_vel_jittered = latency[1]
-        pole_angle_jittered = latency[2]
-        pole_vel_jittered = latency[3]
-
-        self.arm_angle_jittered = arm_angle_jittered
-        self.arm_vel_hittered = arm_vel_jittered
-        
-        obs = [arm_angle_jittered, arm_vel_jittered, pole_angle_jittered, pole_vel_jittered, self.arm_angle_target]
-        
-        s2r.networkStep(obs=obs)
+        obs = m.update()
                 
         done = self.compute_done()
-        reward = self.compute_reward(action, done=done)
+        reward = self.compute_reward(action, obs)
         
         self._envStepCounter += 1
 
@@ -221,34 +110,22 @@ class TensegrityEnvBase(gym.Env):
     
     def updateSimulation(self, action): 
         raise NotImplementedError
-
-    # must be implemented by inheriting class based on control paradigm (ie torque vs position)
-    def haze(self):
-        return
-
-    def compute_observation(self):
-        obs = [self.arm_angle_real, self.arm_vel_real, self.pole_angle_real, self.pole_vel_real, self.arm_angle_target]
-        return obs
-
-    def compute_observation2(self):
-        arm_angle_real, self.arm_vel_real, _, _ = p.getJointState(self.botId, self.armId)
-        self.arm_angle_real = cm.wrapRad(arm_angle_real)
-                
-        arm_to_axle_id = self.poleId
-        pole_angle_real, self.pole_vel_real, _, _ = p.getJointState(self.botId, self.poleId)
-        self.pole_angle_real = cm.wrapRad(pole_angle_real)
-
-        self.arm_angle_real = s2r.noise(self.arm_angle_real, cm.NOISE_SENSE)
-        self.arm_vel_real = s2r.noise(self.arm_vel_real, cm.NOISE_SENSE)
-        self.pole_angle_real = s2r.noise(self.pole_angle_real, cm.NOISE_SENSE)
-        self.pole_vel_real = s2r.noise(self.pole_vel_real, cm.NOISE_SENSE)
-
-        obs = [self.arm_angle_real, self.arm_vel_real, self.pole_angle_real, self.pole_vel_real, self.arm_angle_target]
-        return obs
         
-    def compute_reward(self, action, done=False):
-        # Implementations may override
-        return math.cos(abs(cm.rad2Norm(self.pole_angle_real))) - abs(self.decodeAction(action)) * 0.0001    
+    # Implementations may override
+    def compute_reward(self, action, obs):
+        velForward = obs[3]
+        velSide = obs[4]
+        velVert = obs[5]
+        
+        norm = 0
+        for a in action:
+            norm += a**2
+        norm = norm**0.5
+        
+        aveLinAmp = obs[33]
+        aveAngAmp = obs[34]
+        
+        return velForward - np.abs(velVert)*0.1 - np.abs(velSide) - norm*.001 - (aveLinAmp + aveAngAmp)*0.01
 
     def compute_done(self):
         return self._envStepCounter >= 1000 # 10s
