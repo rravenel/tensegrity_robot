@@ -28,8 +28,10 @@ DAMPING = 0.005 # friction/dampening coefficient
 IMPEDANCE = 1 - DAMPING
 
 UIDS = []
-SPRINGS = []
-STRUTS = {}
+SPRING_LENGTHS = [SPRING_LENGTH_M] * 24
+DISTANCES = []
+STRUTS = {} 
+SPANS = [] # springs are connected across spans
 
 # create position/orientation for pairs of strust for given axis
 def placeStruts(axis):
@@ -55,10 +57,21 @@ def getCenter():
         sum[2] += position[2]
     return (sum[0] / 6, sum[1] / 6, sum[2] / 6)
 
-def getAverageVelocity():
+def getAveAngPos(positionAndOrientations):
+    sum = [0,0,0]
+    for d in positionAndOrientations:
+        orient = d[1]
+        orient = ut.rotate((0,0,1), orient) # unit vector quaternion
+        sum[0] += orient[0]
+        sum[1] += orient[1]
+        sum[2] += orient[2]
+    return(sum[0]/6, sum[1]/6, sum[2]/6)
+
+def getAverageVelocity(velocities):
     sum = [[0,0,0],[0,0,0]]
-    for uid in UIDS:
-        linVel, angVel = p.getBaseVelocity(uid)
+    for vel in velocities:
+        linVel = vel[0]
+        angVel = vel[1]        
         sum[0][0] += linVel[0]
         sum[0][1] += linVel[1]
         sum[0][2] += linVel[2]
@@ -67,75 +80,112 @@ def getAverageVelocity():
         sum[1][2] += angVel[2]
     return (sum[0][0]/6, sum[0][1]/6, sum[0][2]/6), (sum[1][0]/6, sum[1][1]/6, sum[1][2]/6)
 
-def getStrutEnd(uid, end):
-    if 0 == len(STRUTS):
-        for i in UIDS:
-            end0, end1 = ut.strutPose(i, LENGTH_M)
-            STRUTS[i] = end0, end1
-
-    strut = STRUTS[uid]
-    return strut[end]
-
-def updateSprings(deltas=None):
-    global SPRINGS
-    if None == deltas:
-        lengths=[SPRING_LENGTH_M]*len(UIDS)*4
-    else:
-        lengths = []
-        for i in range(length(SPRINGS)):
-            spring = SPRINGS[i]
-            length = spring[2] + deltas[i]
-            if length > SPRING_LENGTH_MAX_M:
-                length = SPRING_LENGTH_MAX_M
-            if length < SPRING_LENGTH_MIN_M:
-                length = SPRING_LENGTH_MIN_M
-        
-    springs = [] # list of ((uidA, endA), (uidB, endB))
-    springs.append(((UIDS[0], getStrutEnd(UIDS[0], 0)),(UIDS[4], getStrutEnd(UIDS[4], 0)), lengths[0]))
-    springs.append(((UIDS[0], getStrutEnd(UIDS[0], 0)),(UIDS[3], getStrutEnd(UIDS[3], 0)), lengths[1]))
-    springs.append(((UIDS[0], getStrutEnd(UIDS[0], 0)),(UIDS[3], getStrutEnd(UIDS[3], 1)), lengths[2]))
-    springs.append(((UIDS[0], getStrutEnd(UIDS[0], 0)),(UIDS[5], getStrutEnd(UIDS[5], 0)), lengths[3]))
-    springs.append(((UIDS[0], getStrutEnd(UIDS[0], 1)),(UIDS[4], getStrutEnd(UIDS[4], 0)), lengths[4]))
-    springs.append(((UIDS[0], getStrutEnd(UIDS[0], 1)),(UIDS[2], getStrutEnd(UIDS[2], 0)), lengths[5]))
-    springs.append(((UIDS[0], getStrutEnd(UIDS[0], 1)),(UIDS[2], getStrutEnd(UIDS[2], 1)), lengths[6]))
-    springs.append(((UIDS[0], getStrutEnd(UIDS[0], 1)),(UIDS[5], getStrutEnd(UIDS[5], 0)), lengths[7]))
-    springs.append(((UIDS[1], getStrutEnd(UIDS[1], 0)),(UIDS[4], getStrutEnd(UIDS[4], 1)), lengths[8]))
-    springs.append(((UIDS[1], getStrutEnd(UIDS[1], 0)),(UIDS[3], getStrutEnd(UIDS[3], 0)), lengths[9]))
-    springs.append(((UIDS[1], getStrutEnd(UIDS[1], 0)),(UIDS[3], getStrutEnd(UIDS[3], 1)), lengths[10]))
-    springs.append(((UIDS[1], getStrutEnd(UIDS[1], 0)),(UIDS[5], getStrutEnd(UIDS[5], 1)), lengths[11]))
-    springs.append(((UIDS[1], getStrutEnd(UIDS[1], 1)),(UIDS[4], getStrutEnd(UIDS[4], 1)), lengths[12]))
-    springs.append(((UIDS[1], getStrutEnd(UIDS[1], 1)),(UIDS[2], getStrutEnd(UIDS[2], 0)), lengths[13]))
-    springs.append(((UIDS[1], getStrutEnd(UIDS[1], 1)),(UIDS[2], getStrutEnd(UIDS[2], 1)), lengths[14]))
-    springs.append(((UIDS[1], getStrutEnd(UIDS[1], 1)),(UIDS[5], getStrutEnd(UIDS[5], 1)), lengths[15]))
-    springs.append(((UIDS[3], getStrutEnd(UIDS[3], 0)),(UIDS[4], getStrutEnd(UIDS[4], 0)), lengths[16]))
-    springs.append(((UIDS[3], getStrutEnd(UIDS[3], 0)),(UIDS[4], getStrutEnd(UIDS[4], 1)), lengths[17]))
-    springs.append(((UIDS[3], getStrutEnd(UIDS[3], 1)),(UIDS[5], getStrutEnd(UIDS[5], 0)), lengths[18]))
-    springs.append(((UIDS[3], getStrutEnd(UIDS[3], 1)),(UIDS[5], getStrutEnd(UIDS[5], 1)), lengths[19]))
-    springs.append(((UIDS[2], getStrutEnd(UIDS[2], 0)),(UIDS[4], getStrutEnd(UIDS[4], 0)), lengths[20]))
-    springs.append(((UIDS[2], getStrutEnd(UIDS[2], 0)),(UIDS[4], getStrutEnd(UIDS[4], 1)), lengths[21]))
-    springs.append(((UIDS[2], getStrutEnd(UIDS[2], 1)),(UIDS[5], getStrutEnd(UIDS[5], 0)), lengths[22]))
-    springs.append(((UIDS[2], getStrutEnd(UIDS[2], 1)),(UIDS[5], getStrutEnd(UIDS[5], 1)), lengths[23]))
+def getDistances():
+    distances = []
+    for span in SPANS:
+        distances.append(ut.delta(span[0][1], span[1][1]))
     
-    SPRINGS = springs
+    global DISTANCES
+    DISTANCES = distances
 
-def applySpringForces():
-    for spring in SPRINGS:
-        distance = ut.delta(spring[0][1], spring[1][1])
-        direction = ut.direction(spring[0][1], spring[1][1])
-        force = ut.springForce(SPRING_K, distance - SPRING_LENGTH_M)
+def getSpans():
+    spans = []
+        
+    spans.append(((UIDS[0], STRUTS[UIDS[0]][0]), (UIDS[4], STRUTS[UIDS[4]][0])))
+    spans.append(((UIDS[0], STRUTS[UIDS[0]][0]), (UIDS[3], STRUTS[UIDS[3]][0])))
+    spans.append(((UIDS[0], STRUTS[UIDS[0]][0]), (UIDS[3], STRUTS[UIDS[3]][1])))
+    spans.append(((UIDS[0], STRUTS[UIDS[0]][0]), (UIDS[5], STRUTS[UIDS[5]][0])))
+
+    spans.append(((UIDS[0], STRUTS[UIDS[0]][1]), (UIDS[4], STRUTS[UIDS[4]][0])))
+    spans.append(((UIDS[0], STRUTS[UIDS[0]][1]), (UIDS[2], STRUTS[UIDS[2]][0])))
+    spans.append(((UIDS[0], STRUTS[UIDS[0]][1]), (UIDS[2], STRUTS[UIDS[2]][1])))
+    spans.append(((UIDS[0], STRUTS[UIDS[0]][1]), (UIDS[5], STRUTS[UIDS[5]][0])))
+    
+    spans.append(((UIDS[1], STRUTS[UIDS[1]][0]), (UIDS[4], STRUTS[UIDS[4]][1])))
+    spans.append(((UIDS[1], STRUTS[UIDS[1]][0]), (UIDS[3], STRUTS[UIDS[3]][0])))
+    spans.append(((UIDS[1], STRUTS[UIDS[1]][0]), (UIDS[3], STRUTS[UIDS[3]][1])))
+    spans.append(((UIDS[1], STRUTS[UIDS[1]][0]), (UIDS[5], STRUTS[UIDS[5]][1])))
+    
+    spans.append(((UIDS[1], STRUTS[UIDS[1]][1]), (UIDS[4], STRUTS[UIDS[4]][1])))
+    spans.append(((UIDS[1], STRUTS[UIDS[1]][1]), (UIDS[2], STRUTS[UIDS[2]][0])))
+    spans.append(((UIDS[1], STRUTS[UIDS[1]][1]), (UIDS[2], STRUTS[UIDS[2]][1])))
+    spans.append(((UIDS[1], STRUTS[UIDS[1]][1]), (UIDS[5], STRUTS[UIDS[5]][1])))
+    
+    spans.append(((UIDS[3], STRUTS[UIDS[3]][0]), (UIDS[4], STRUTS[UIDS[4]][0])))
+    spans.append(((UIDS[3], STRUTS[UIDS[3]][0]), (UIDS[4], STRUTS[UIDS[4]][1])))
+    spans.append(((UIDS[3], STRUTS[UIDS[3]][1]), (UIDS[5], STRUTS[UIDS[5]][0])))
+    spans.append(((UIDS[3], STRUTS[UIDS[3]][1]), (UIDS[5], STRUTS[UIDS[5]][1])))
+    
+    spans.append(((UIDS[2], STRUTS[UIDS[2]][0]), (UIDS[4], STRUTS[UIDS[4]][0])))
+    spans.append(((UIDS[2], STRUTS[UIDS[2]][0]), (UIDS[4], STRUTS[UIDS[4]][1])))
+    spans.append(((UIDS[2], STRUTS[UIDS[2]][1]), (UIDS[5], STRUTS[UIDS[5]][0])))
+    spans.append(((UIDS[2], STRUTS[UIDS[2]][1]), (UIDS[5], STRUTS[UIDS[5]][1])))
+    
+    global SPANS
+    SPANS = spans
+
+def applyForces(forces):
+    for i in range(len(forces)):
+        force = forces[i]
+        span = SPANS[i]
+        direction = ut.direction(span[0][1], span[1][1])
         force = (direction[0] * force, direction[1] * force, direction[2] * force)
-        ut.push(spring[0][0], spring[0][1], force)
-        ut.push(spring[1][0], spring[1][1], [i * -1 for i in force])
+        ut.push(span[0][0], span[0][1], force)
+        ut.push(span[1][0], span[1][1], [i * -1 for i in force])
 
-def impede():
+def computeForces():
+    forces = []
+    for i in range(len(DISTANCES)):
+        force = ut.springForce(SPRING_K, DISTANCES[i] - SPRING_LENGTHS[i])
+        if force < 0:
+            force = 0
+        forces.append(force)
+    return forces
+
+def impede(uid):
+    linVel, angVel = p.getBaseVelocity(uid)
+    
+    linVel = [i * IMPEDANCE for i in linVel]
+    angVel = [i * IMPEDANCE for i in angVel]
+
+    p.resetBaseVelocity(uid, linVel, angVel)
+    return linVel, angVel
+
+def act(deltas=[]):
+    global SPRING_LENGTHS    
+    for i in range(len(deltas)):
+        d = deltas[i]
+        springLength = SPRING_LENGTHS[i]
+        springLength += d
+        if springLength > SPRING_LENGTH_MAX_M:
+            springLength = SPRING_LENGTH_MAX_M
+        if springLength < SPRING_LENGTH_MIN_M:
+            springLength = SPRING_LENGTH_MIN_M
+        SPRING_LENGTHS[i] = springLength
+        
+    forces = computeForces()
+    applyForces(forces)
+
+# input to RL
+def update():
+    global STRUTS
+    positionAndOrientations = []
+    velocities = []
     for uid in UIDS:
-        linVel, angVel = p.getBaseVelocity(uid)
-        
-        linVel = [i * IMPEDANCE for i in linVel]
-        angVel = [i * IMPEDANCE for i in angVel]
+        velocities.append((impede(uid)))
+        positionAndOrientation = p.getBasePositionAndOrientation(uid)
+        positionAndOrientations.append(positionAndOrientation)
+        STRUTS[uid] = (ut.strutPose(positionAndOrientation, LENGTH_M))
 
-        p.resetBaseVelocity(uid, linVel, angVel)
-        
+    aveLinVel, aveAngVel = getAverageVelocity(velocities)
+    aveAngPos = getAveAngPos(positionAndOrientations)
+
+    getSpans()
+    getDistances()
+    forces = computeForces()
+
+    return aveAngPos, aveLinVel, aveAngVel, forces
+    
 
 # create an icosahedral tensegrity
 def build():
@@ -148,8 +198,3 @@ def build():
     for strut in placeStruts(Z):
         UIDS.append(ut.createStrut(RADIUS_M, LENGTH_M, MASS_KG, strut[0], strut[1]))
     
-    global SPRINGS
-    SPRINGS = updateSprings()
-
-def reset():
-    STRUTS.clear()

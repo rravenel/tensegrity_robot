@@ -65,8 +65,7 @@ def createStrut(radius, length, mass, basePosition, baseOrientation=[0, 0, 0, 1]
     return cylinderUid
 
 # return global coordinates for ends of strut
-def strutPose(uid, length): # not sure how to get link geometry
-    positionAndOrientation = p.getBasePositionAndOrientation(uid)
+def strutPose(positionAndOrientation, length):
     
     position = positionAndOrientation[0]
     orientation = positionAndOrientation[1]

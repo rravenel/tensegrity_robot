@@ -27,10 +27,8 @@ def configPyBullet():
 
 def reset():
     p.resetSimulation()
-    m.reset()
 
 def step():
-    m.reset()
     p.stepSimulation()
     
 def main():
@@ -40,10 +38,9 @@ def main():
 def run():
     while (1):
         start = time.time()
-        m.impede()
-        m.updateSprings()
-        m.applySpringForces()
-        
+        m.update()
+        m.act()
+                
         step()
         keys = p.getKeyboardEvents()
         
