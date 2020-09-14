@@ -8,8 +8,8 @@ import tensegrity_env_base as teb
 import common as cm
 
 
-STEPS = 10000
-#STEPS = 50000
+#STEPS = 10000
+STEPS = 50000
 #STEPS = 100000
 #STEPS = 200000
 #DIMENSION = 16
@@ -54,11 +54,11 @@ def train(env, file):
     )
 
     # save trained model
-    model.save(teb.MODEL_PATH + file)
+    model.save(teb.PATH_POLICY + file)
     print("Duration: %.1f" % ((time.time() - start)/60))
 
 def main():
-    train(TensegrityEnvDeltaPpo2(cm.TRAIN), "ppo2_a.zip")
+    train(TensegrityEnvDeltaPpo2(cm.TRAIN), teb.NAME_POLICY)
 
 if __name__ == '__main__':
     main()

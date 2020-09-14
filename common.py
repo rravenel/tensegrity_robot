@@ -26,6 +26,7 @@ NOISE_COMMAND = 0.05
 
 TRAIN = "train"
 RUN = "run"
+TEST = "test"
 
 # clamp(2, 1, -1)
 def clamp(n, minn, maxn):

@@ -8,8 +8,6 @@ X = [1,0,0]
 Y = [0,1,0]
 Z = [0,0,1]
 
-# N/m
-SPRING_K = 25
 
 LENGTH_M = 1
 RADIUS_M = 0.025
@@ -18,12 +16,16 @@ MASS_KG = 0.1
 OFFSET = LENGTH_M * (1/ut.GOLDEN_NUMBER) / 2
 POSITION = (0, 0, 0.5) # global coordinates for center of tensegrity
 
+# N/m
+SPRING_K = 25
+#SPRING_K = 30
 SPRING_TENSION_N = 10
 SPRING_LENGTH_M = 2 * OFFSET - (SPRING_TENSION_N/SPRING_K)
 SPRING_TRAVEL = 0.5
 SPRING_LENGTH_MAX_M = (1 + SPRING_TRAVEL) * SPRING_LENGTH_M
 SPRING_LENGTH_MIN_M = (1 - SPRING_TRAVEL) * SPRING_LENGTH_M
-DAMPING = 0.005 # friction/dampening coefficient
+#DAMPING = 0.005 # friction/dampening coefficient
+DAMPING = 0.05 # friction/dampening coefficient
 IMPEDANCE = 1 - DAMPING
 
 F_MAX_N = 20 # heuristic impacted by MASS_KG and SPRING_K used for normalization
@@ -212,7 +214,7 @@ def update():
         observation.append(aveLinVel[i]/L_VEL_MAX)
         
     for i in range(len(aveAngVel)):
-        observation.append(aveAngVel[i])
+        observation.append(aveAngVel[i]/L_VEL_MAX)
         
     for i in range(len(forces)):
         #normalize forces

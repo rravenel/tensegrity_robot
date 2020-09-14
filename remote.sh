@@ -20,13 +20,9 @@ echo Upload project...
 echo `scp -i ~/.ssh/first_aws.pem ${localpath}*.py ubuntu@${ip}:${awspath}`
 
 echo `date`
-echo Upload networks...
-echo `scp -i ~/.ssh/first_aws.pem ${localpath}/tf/*.h5 ubuntu@${ip}:${awspath}/tf`
-
-echo `date`
 echo  Train policy...
-echo `ssh -i ~/.ssh/first_aws.pem ubuntu@${ip} "source /home/ubuntu/miniconda3/etc/profile.d/conda.sh && conda activate furuta-v3 && cd ${awspath} && mpirun -n 16 python ${train}"`
-#echo `ssh -i ~/.ssh/first_aws.pem ubuntu@${ip} "source /home/ubuntu/miniconda3/etc/profile.d/conda.sh && conda activate furuta-v3 && cd ${awspath} && python ${train}"`
+#echo `ssh -i ~/.ssh/first_aws.pem ubuntu@${ip} "source /home/ubuntu/miniconda3/etc/profile.d/conda.sh && conda activate furuta-v3 && cd ${awspath} && mpirun -n 16 python ${train}"`
+echo `ssh -i ~/.ssh/first_aws.pem ubuntu@${ip} "source /home/ubuntu/miniconda3/etc/profile.d/conda.sh && conda activate furuta-v3 && cd ${awspath} && python ${train}"`
 
 echo `date`
 echo Download .zips...
@@ -37,4 +33,4 @@ echo Done
 echo `date`
 
 echo Testing...
-echo `python ${test}`
+#echo `python ${test}`

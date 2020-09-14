@@ -32,7 +32,8 @@ Implementations MAY define:
 '''
 PI = cm.PI # convenience
 
-MODEL_PATH = "model/"
+PATH_POLICY = "policy/"
+NAME_POLICY = "ppo2_aws_a.zip"
 
 # control by setting motor current
 class TensegrityEnvBase(gym.Env):
@@ -57,7 +58,7 @@ class TensegrityEnvBase(gym.Env):
         obs_min, obs_max = self.setObs()
         self.observation_space = spaces.Box(np.array(obs_min), np.array(obs_max))
                 
-        #self.setRender(render)
+        self.setRender(render)
 
     def setObs(self):
         obs_min = [-2] * 35
@@ -91,10 +92,9 @@ class TensegrityEnvBase(gym.Env):
 
         return np.array(obs)
         
-    def step(self, action):
-        self.action = action
-        
+    def step(self, action):        
         self.updateSimulation(action)
+        self.last_action = action
         p.stepSimulation()
         obs = m.update()
                 
@@ -113,22 +113,33 @@ class TensegrityEnvBase(gym.Env):
         
     # Implementations may override
     def compute_reward(self, action, obs):
-        velForward = obs[3]
-        velSide = obs[4]
+        #spin = 0
+        #for i in range(3):
+        #    spin+= np.abs(obs[i+6])
+        #spin = spin / 3
+        spin = obs[7] # roll in +X direction
+        
+        velForward = obs[3] # +X direction
+        velSide = obs[4] 
         velVert = obs[5]
         
-        norm = 0
-        for a in action:
-            norm += a**2
-        norm = norm**0.5
+        diff = 0
+        aveAction = 0
+        for i in range(len(action)):
+            a = action[i]
+            aveAction += np.abs(a)
+            diff += np.abs(a - self.last_action[i])
+        aveAction = aveAction/len(action)
+        diff = diff/len(action)
         
         aveLinAmp = obs[33]
         aveAngAmp = obs[34]
         
-        return velForward - np.abs(velVert)*0.1 - np.abs(velSide) - norm*.001 - (aveLinAmp + aveAngAmp)*0.01
+        return spin + velForward - np.abs(velSide)*0  - np.abs(velVert)*0 - aveAction*0 - (aveLinAmp + aveAngAmp)*0 - diff
 
     def compute_done(self):
-        return self._envStepCounter >= 1000 # 10s
+        #return self._envStepCounter >= 1000 # 10s
+        return self._envStepCounter >= 300
         
     def render(self, mode='human', close=False):
         pass
