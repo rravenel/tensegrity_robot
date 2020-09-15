@@ -5,7 +5,7 @@ ip=""
 #train="deepq_p_train.py"
 #test="deepq_p_run.py test"
 
-train="ppo_d_train.py"
+train="ppo_d_train.py 16"
 test="ppo_d_run.py test"
 
 #train="trpo_p_train.py"
@@ -32,5 +32,5 @@ echo `scp -i ~/.ssh/first_aws.pem ubuntu@${ip}:${awspath}policy/*.zip /Users/ren
 echo Done
 echo `date`
 
-echo Testing...
+#echo Testing...
 #echo `python ${test}`

@@ -51,28 +51,28 @@ def placeStruts(axis):
 
     return (center1, orientation), (center2, orientation)
 
-def getCenter():
-    total = [0,0,0]
-    for uid in UIDS:
-        positionAndOrientation = p.getBasePositionAndOrientation(uid)
-        position = [0]
-        total[0] += position[0]
-        total[1] += position[1]
-        total[2] += position[2]
-    return (total[0] / 6, total[1] / 6, total[2] / 6)
-
 # returns unit vector
-def getAveAngPos(positionAndOrientations):
-    total = [0,0,0]
+def getAvePose(positionAndOrientations):
+    totalAng = [0,0,0]
+    totalPos = [0,0,0]
     for d in positionAndOrientations:
+        pos = d[0]
+        totalPos[0] += pos[0]
+        totalPos[1] += pos[1]
+        totalPos[2] += pos[2]
+        
         orient = d[1]
         orient = ut.rotate((0,0,1), orient) # unit vector quaternion
-        total[0] += orient[0]
-        total[1] += orient[1]
-        total[2] += orient[2]
-    pos = (total[0]/6, total[1]/6, total[2]/6)
-    norm = (pos[0]**2 + pos[1]**2 + pos[2]**2)**0.5
-    return (pos[0]/norm, pos[1]/norm, pos[2]/norm)
+        totalAng[0] += orient[0]
+        totalAng[1] += orient[1]
+        totalAng[2] += orient[2]
+    avePos = (totalPos[0]/6, totalPos[1]/6, totalPos[2]/6)
+    
+    ang = (totalAng[0]/6, totalAng[1]/6, totalAng[2]/6)
+    norm = (ang[0]**2 + ang[1]**2 + ang[2]**2)**0.5
+    aveAng = (ang[0]/norm, ang[1]/norm, ang[2]/norm)
+    
+    return aveAng, avePos
 
 def getAverageVelocity(velocities):
     total = [[0,0,0],[0,0,0]]
@@ -107,6 +107,7 @@ def getDistances():
         distances.append(ut.delta(span[0][1], span[1][1]))
     
     global DISTANCES
+    DISTANCES.clear()
     DISTANCES = distances
 
 def getSpans():
@@ -143,6 +144,7 @@ def getSpans():
     spans.append(((UIDS[2], STRUTS[UIDS[2]][1]), (UIDS[5], STRUTS[UIDS[5]][1])))
     
     global SPANS
+    SPANS.clear()
     SPANS = spans
 
 def applyForces(forces):
@@ -187,6 +189,15 @@ def act(deltas=[]):
     forces = computeForces()
     applyForces(forces)
 
+def getMaxReach(avePos):
+    distance = 0
+    for strut in STRUTS.values():
+        for end in strut:
+            dist = ut.delta(end, avePos)
+            if dist > distance:
+                distance = dist
+    return distance
+
 # input to RL
 def update():
     global STRUTS
@@ -199,13 +210,15 @@ def update():
         STRUTS[uid] = (ut.strutPose(positionAndOrientation, LENGTH_M))
 
     aveLinVel, aveAngVel, aveLinAmp, aveAngAmp = getAverageVelocity(velocities)
-    aveAngPos = getAveAngPos(positionAndOrientations)
+    aveAngPos, avePos = getAvePose(positionAndOrientations)
+    reach = getMaxReach(avePos)
 
     getSpans()
     getDistances()
     forces = computeForces()
-        
-    observation = []
+    
+    ########## NN input ##################    
+    observation = []    
     for i in range(len(aveAngPos)):
         observation.append(aveAngPos[i])
         
@@ -216,12 +229,19 @@ def update():
     for i in range(len(aveAngVel)):
         observation.append(aveAngVel[i]/L_VEL_MAX)
         
-    for i in range(len(forces)):
-        #normalize forces
-        observation.append(forces[i]/F_MAX_N)
+    for i in range(len(DISTANCES)):
+        observation.append(DISTANCES[i])
     
+    traveled = (avePos[0]**2 + avePos[1]**2)**0.5
+    observation.append(traveled)
+    
+    ########## END NN input ################
+    
+    ########### data for cost function ##########
     observation.append(aveLinAmp/L_VEL_MAX)
     observation.append(aveAngAmp/L_VEL_MAX)
+    
+    observation.append(reach)
 
     return observation
     

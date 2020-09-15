@@ -7,7 +7,7 @@ from tensegrity_env_d_ppo2 import TensegrityEnvDeltaPpo2
 import tensegrity_env_base as teb
 import common as cm
 
-                
+
 def main(arg):
     env = TensegrityEnvDeltaPpo2(arg, render = arg == cm.RUN)
     model = PPO2.load(teb.PATH_POLICY + teb.NAME_POLICY)
@@ -26,9 +26,6 @@ def main(arg):
             
             if done:
                 print("Episode Reward: %.2f" % (running_reward))
-                #print("Episode Length: %d" % ep_len)
-                running_reward = 0.0
-                ep_len = 0
                 break
                 
 if __name__ == '__main__':

@@ -33,7 +33,7 @@ Implementations MAY define:
 PI = cm.PI # convenience
 
 PATH_POLICY = "policy/"
-NAME_POLICY = "ppo2_aws_a.zip"
+NAME_POLICY = "ppo2_aws_3x_a.zip"
 
 # control by setting motor current
 class TensegrityEnvBase(gym.Env):
@@ -55,16 +55,12 @@ class TensegrityEnvBase(gym.Env):
             exit()   
         self.action_space = action_space
         
-        obs_min, obs_max = self.setObs()
+        obs_min = [-2] * 34
+        obs_max = [2] * 34
         self.observation_space = spaces.Box(np.array(obs_min), np.array(obs_max))
                 
         self.setRender(render)
 
-    def setObs(self):
-        obs_min = [-2] * 35
-        obs_max = [2] * 35
-                
-        return obs_min, obs_max
     
     # must be called immediately following __init__()
     def setRender(self, render):
@@ -90,7 +86,7 @@ class TensegrityEnvBase(gym.Env):
         m.build()
         obs = m.update()
 
-        return np.array(obs)
+        return np.array(obs[:34])
         
     def step(self, action):        
         self.updateSimulation(action)
@@ -103,7 +99,7 @@ class TensegrityEnvBase(gym.Env):
         
         self._envStepCounter += 1
 
-        return np.array(obs), reward, done, {}
+        return np.array(obs[:34]), reward, done, {}
     
     def decodeAction(self, action):
         raise NotImplementedError
@@ -132,10 +128,13 @@ class TensegrityEnvBase(gym.Env):
         aveAction = aveAction/len(action)
         diff = diff/len(action)
         
-        aveLinAmp = obs[33]
-        aveAngAmp = obs[34]
+        traveled = obs[33]
         
-        return spin + velForward - np.abs(velSide)*0  - np.abs(velVert)*0 - aveAction*0 - (aveLinAmp + aveAngAmp)*0 - diff
+        aveLinAmp = obs[34]
+        aveAngAmp = obs[35]
+        reach = obs[36]
+        
+        return traveled + spin*0 + velForward*0 - np.abs(velSide)*0  - np.abs(velVert)*0 - aveAction*0 - (aveLinAmp + aveAngAmp)*0 - diff*0 + reach*0
 
     def compute_done(self):
         #return self._envStepCounter >= 1000 # 10s
