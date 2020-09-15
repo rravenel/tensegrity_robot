@@ -5,4 +5,9 @@ Control a spherical tensegrity robot in simulation with Machine Learning.
 
 Basic model is assembled:
 
+```commandline
+$ python tensegrity.py bounce
+```
+
 ![alt-text-2](media/tensegrity_bounce.gif)
+
