@@ -22,7 +22,7 @@ echo `scp -i ~/.ssh/first_aws.pem ${localpath}*.py ubuntu@${ip}:${awspath}`
 echo `date`
 echo  Train policy...
 #echo `ssh -i ~/.ssh/first_aws.pem ubuntu@${ip} "source /home/ubuntu/miniconda3/etc/profile.d/conda.sh && conda activate furuta-v3 && cd ${awspath} && mpirun -n 16 python ${train}"`
-echo `ssh -i ~/.ssh/first_aws.pem ubuntu@${ip} "source /home/ubuntu/miniconda3/etc/profile.d/conda.sh && conda activate furuta-v3 && cd ${awspath} && python ${train}"`
+#echo `ssh -i ~/.ssh/first_aws.pem ubuntu@${ip} "source /home/ubuntu/miniconda3/etc/profile.d/conda.sh && conda activate furuta-v3 && cd ${awspath} && python ${train}"`
 
 echo `date`
 echo Download .zips...

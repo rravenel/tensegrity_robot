@@ -9,7 +9,7 @@ import pybullet as p
 import pybullet_data
 
 import tensegrity as t
-import model as m
+import model_sine as m
 import common as cm
 
 '''
@@ -42,7 +42,7 @@ class TensegrityEnvBase(gym.Env):
         'video.frames_per_second' : 50
     }
 
-    def __init__(self, render=False, state=None, action_space=None):
+    def __init__(self, render=False, state=None, action_space=None, observation_space=None):
         super(TensegrityEnvBase, self).__init__()
         
         if None is state:
@@ -54,11 +54,14 @@ class TensegrityEnvBase(gym.Env):
             print("action_space is None. Exiting.")
             exit()   
         self.action_space = action_space
-        
-        obs_min = [-2] * 34
-        obs_max = [2] * 34
-        self.observation_space = spaces.Box(np.array(obs_min), np.array(obs_max))
-                
+              
+        if None is observation_space:
+            obs_min = [-2] * 34
+            obs_max = [2] * 34
+            observation_space = spaces.Box(np.array(obs_min), np.array(obs_max))            
+            print("WARN: observation_space is None. Using default tensegrity_env_delta values.")
+        self.observation_space = observation_space
+                 
         self.setRender(render)
 
     
@@ -86,7 +89,7 @@ class TensegrityEnvBase(gym.Env):
         m.build()
         obs = m.update()
 
-        return np.array(obs[:34])
+        return np.array(obs[:9])
         
     def step(self, action):        
         self.updateSimulation(action)
@@ -99,7 +102,7 @@ class TensegrityEnvBase(gym.Env):
         
         self._envStepCounter += 1
 
-        return np.array(obs[:34]), reward, done, {}
+        return np.array(obs[:9]), reward, done, {}
     
     def decodeAction(self, action):
         raise NotImplementedError
@@ -134,7 +137,7 @@ class TensegrityEnvBase(gym.Env):
         aveAngAmp = obs[35]
         reach = obs[36]
         
-        return traveled + spin*0 + velForward*0 - np.abs(velSide)*0  - np.abs(velVert)*0 - aveAction*0 - (aveLinAmp + aveAngAmp)*0 - diff*0 + reach*0
+        return traveled + spin*0 + velForward*0 - np.abs(velSide)*0  - np.abs(velVert)*0 - aveAction*0.1 - (aveLinAmp + aveAngAmp)*0 - diff*0.1 + reach*0
 
     def compute_done(self):
         #return self._envStepCounter >= 1000 # 10s
