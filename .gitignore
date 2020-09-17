@@ -134,3 +134,6 @@ dmypy.json
 # Ignore Mac detritus
 .DS_Store
 *.DS_Store
+
+# Project specific:
+remote.sh

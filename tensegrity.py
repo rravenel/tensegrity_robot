@@ -9,6 +9,7 @@ import model as m
 import util as ut
 
 BOUNCE = "bounce"
+ROLL = "roll"
 TIME_STEP_S = 0.01
 
 
@@ -35,11 +36,15 @@ def main():
     physicsClient = configPyBullet()
     m.build()
 
-def run():
+def run(arg):
+    action = []
+    if ROLL == arg:
+        action = [.1,.1,-.1,-.1]
+        
     while (1):
         start = time.time()
         m.update()
-        m.act()
+        m.act(action)
                 
         step()
         keys = p.getKeyboardEvents()
@@ -57,5 +62,5 @@ if __name__ == '__main__':
             m.POSITION = (0,0,5)
         
     main()
-    run()
+    run(arg)
     

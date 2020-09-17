@@ -30,6 +30,7 @@ IMPEDANCE = 1 - DAMPING
 
 F_MAX_N = 20 # heuristic impacted by MASS_KG and SPRING_K used for normalization
 L_VEL_MAX = 10 # similar to F_MAX_N for linear velocity
+MAX_VEL = 0.1 # m/s
 
 UIDS = []
 SPRING_LENGTHS = [SPRING_LENGTH_M] * 24
@@ -172,36 +173,46 @@ def computeForces():
     return forces
 
 def impede(uid):
-    linVel, angVel = p.getBaseVelocity(uid)
+    linVel_raw, angVel_raw = p.getBaseVelocity(uid)
     
-    linVel = [i * IMPEDANCE for i in linVel]
-    angVel = [i * IMPEDANCE for i in angVel]
+    linVel = []
+    for v in linVel_raw:
+        v *= IMPEDANCE
+        if v > MAX_VEL:
+            v = MAX_VEL
+        linVel.append(v)
+
+    angVel = []
+    for v in angVel_raw:
+        v *= IMPEDANCE
+        if v > MAX_VEL:
+            v = MAX_VEL
+        angVel.append(v)
 
     p.resetBaseVelocity(uid, linVel, angVel)
     return linVel, angVel
 
 def act(deltas=[]):
     global SPRING_LENGTHS    
-    for i in range(len(deltas)):
-        delta = deltas[i]
-        for group in range(4):
-            for s in range(3):
-                springLength = SPRING_LENGTHS[i*group + s]
-                springLength += delta
-                if springLength > SPRING_LENGTH_MAX_M:
-                    springLength = SPRING_LENGTH_MAX_M
-                if springLength < SPRING_LENGTH_MIN_M:
-                    springLength = SPRING_LENGTH_MIN_M
-                SPRING_LENGTHS[i*group + s] = springLength
-                
-                # reverse the delta for the opposite group
-                springLength = SPRING_LENGTHS[i*group + s +3]
-                springLength -= delta
-                if springLength > SPRING_LENGTH_MAX_M:
-                    springLength = SPRING_LENGTH_MAX_M
-                if springLength < SPRING_LENGTH_MIN_M:
-                    springLength = SPRING_LENGTH_MIN_M
-                SPRING_LENGTHS[i*group + s + 3] = springLength
+    for group in range(len(deltas)):
+        delta = deltas[group]
+        for s in range(3):
+            springLength = SPRING_LENGTHS[6*group + s]
+            springLength += delta
+            if springLength > SPRING_LENGTH_MAX_M:
+                springLength = SPRING_LENGTH_MAX_M
+            if springLength < SPRING_LENGTH_MIN_M:
+                springLength = SPRING_LENGTH_MIN_M
+            SPRING_LENGTHS[6*group + s] = springLength
+            
+            # reverse the delta for the opposite group
+            springLength = SPRING_LENGTHS[6*group + s + 3]
+            springLength -= delta
+            if springLength > SPRING_LENGTH_MAX_M:
+                springLength = SPRING_LENGTH_MAX_M
+            if springLength < SPRING_LENGTH_MIN_M:
+                springLength = SPRING_LENGTH_MIN_M
+            SPRING_LENGTHS[6*group + s + 3] = springLength    
         
     forces = computeForces()
     applyForces(forces)

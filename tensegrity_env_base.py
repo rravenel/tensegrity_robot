@@ -137,7 +137,7 @@ class TensegrityEnvBase(gym.Env):
         aveAngAmp = obs[35]
         reach = obs[36]
         
-        return traveled + spin*0 + velForward*0 - np.abs(velSide)*0  - np.abs(velVert)*0 - aveAction*0.1 - (aveLinAmp + aveAngAmp)*0 - diff*0.1 + reach*0
+        return traveled + spin*0 + velForward*0 - np.abs(velSide)*0  - np.abs(velVert)*0 - aveAction*1 - (aveLinAmp + aveAngAmp)*0 - diff*0.1 + reach*0
 
     def compute_done(self):
         #return self._envStepCounter >= 1000 # 10s

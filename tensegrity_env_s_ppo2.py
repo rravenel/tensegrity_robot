@@ -16,8 +16,8 @@ class TensegrityEnvSinePpo2(tes.TensegrityEnvSine):
             render=render)
     
     def decodeAction(self, action):
-        #for i in range(len(action)):
-        #    action[i] = action[i]/10
+        for i in range(len(action)):
+            action[i] = action[i]*.001
         return action
     
     

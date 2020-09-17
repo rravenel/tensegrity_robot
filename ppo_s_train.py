@@ -12,10 +12,10 @@ import common as cm
 MAX_CPU = 16 # cap it per current aws instance type
 
 #STEPS = 10000
-#STEPS = 50000
+STEPS = 50000
 #STEPS = 100000
 #STEPS = 500000
-STEPS = 2000000
+#STEPS = 2000000
 #DIMENSION = 16
 #DIMENSION = 32
 #DIMENSION = 64
@@ -33,7 +33,7 @@ def train(env, file):
         #tensorboard_log=saver.data_dir,
         policy=MlpPolicy,
         #policy_kwargs=dict(net_arch=[dict(pi=[DIMENSION, DIMENSION], vf=[DIMENSION, DIMENSION])]),
-        policy_kwargs=dict(net_arch=[32, 32]),
+        policy_kwargs=dict(net_arch=[8, 8]),
         env=env,
         gamma=0.998,
         #n_steps=1000,
